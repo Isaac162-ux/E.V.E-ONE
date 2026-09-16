@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start"
 import { z } from "zod"
 
-import { getCurrentUser, noteRestrictedAccess } from "./auth.server.ts"
+import { getCurrentUser, noteRestrictedAccess } from "#/lib/auth.server.ts"
 import {
   listSourceFiles,
   readSourceFile,
@@ -24,9 +24,7 @@ export const listEveSource = createServerFn({ method: "GET" }).handler(
 export const readEveSource = createServerFn({ method: "GET" })
   .validator(z.string().min(1).max(200))
   .handler(
-    async ({
-      data,
-    }): Promise<{ authorized: boolean; file: EveSourceFile | null }> => {
+    async ({ data }): Promise<{ authorized: boolean; file: EveSourceFile | null }> => {
       const user = await getCurrentUser()
       if (!user) {
         await noteRestrictedAccess("oficina")
