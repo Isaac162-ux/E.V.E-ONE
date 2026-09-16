@@ -8,7 +8,7 @@
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "preview": "vite preview --host 0.0.0.0 --port 13000",
-    "typecheck": "tsr generate && tsc --noEmit",
+    "typecheck": "tsc --noEmit",
     "lint": "oxlint && node --test scripts/check-css-layers.test.mjs && node scripts/check-css-layers.mjs",
     "test:eve": "node --test scripts/eve-contract.test.mjs",
     "format": "oxfmt --write",
