@@ -19,7 +19,7 @@ test("E.V.E. conversation hook exposes the console contract", async () => {
     "addProposals",
     "recordProposalRun",
   ]) {
-    assert.match(source, new RegExp(symbol.replace(/[.*+?^${}()|[\\]\\]/g, "\\$&")))
+    assert.ok(source.includes(symbol), `missing contract symbol: ${symbol}`)
   }
 })
 
@@ -36,8 +36,8 @@ test("E.V.E. browser voice is bidirectional by contract", async () => {
   assert.match(source, /SpeechRecognition/)
   assert.match(source, /SpeechSynthesisUtterance/)
   assert.match(source, /pt-BR/)
-  assert.match(source, /setStatus\(\"listening\"\)/)
-  assert.match(source, /setStatus\(\"speaking\"\)/)
+  assert.match(source, /setStatus\("listening"\)/)
+  assert.match(source, /setStatus\("speaking"\)/)
 })
 
 test("legacy component and client import paths resolve through compatibility shims", async () => {
