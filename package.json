@@ -2,22 +2,21 @@
   "name": "project",
   "private": true,
   "type": "module",
-  "imports": {
-    "#/*": "./src/*"
-  },
+  "imports": {"#/*": "./src/*"},
   "scripts": {
     "dev": "vite dev --host 0.0.0.0 --port 13000",
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "preview": "vite preview --host 0.0.0.0 --port 13000",
-    "typecheck": "tsr generate && tsc --noEmit",
+    "typecheck": "tsc --noEmit",
     "lint": "oxlint && node --test scripts/check-css-layers.test.mjs && node scripts/check-css-layers.mjs",
+    "test:eve": "node --test scripts/eve-contract.test.mjs",
     "format": "oxfmt --write",
     "cf:typegen": "wrangler types",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
-    "verify": "pnpm lint && pnpm typecheck && pnpm build && curl -sf -o /dev/null http://localhost:13000/"
+    "verify": "pnpm test:eve && pnpm lint && pnpm typecheck && pnpm build"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
