@@ -8,15 +8,15 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-import { Route as rootRouteImport } from './rotas/__root'
-import { Route as IndexRouteImport } from './rotas/index'
-import { Route as LoginRouteImport } from './rotas/login'
-import { Route as ApiEveRouteImport } from './rotas/api/eve'
-import { Route as ApiHealthRouteImport } from './rotas/api/health'
-import { Route as ApiAuthLoginRouteImport } from './rotas/api/auth/login'
-import { Route as ApiAuthLogoutRouteImport } from './rotas/api/auth/logout'
-import { Route as ApiAuthMeRouteImport } from './rotas/api/auth/me'
-import { Route as ApiAuthRegisterRouteImport } from './rotas/api/auth/register'
+import { Route as rootRouteImport } from './routes/__root'
+import { Route as IndexRouteImport } from './routes/index'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as ApiEveRouteImport } from './routes/api/eve'
+import { Route as ApiHealthRouteImport } from './routes/api/health'
+import { Route as ApiAuthLoginRouteImport } from './routes/api/auth/login'
+import { Route as ApiAuthLogoutRouteImport } from './routes/api/auth/logout'
+import { Route as ApiAuthMeRouteImport } from './routes/api/auth/me'
+import { Route as ApiAuthRegisterRouteImport } from './routes/api/auth/register'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
