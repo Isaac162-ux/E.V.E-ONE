@@ -160,15 +160,27 @@ function CameraPanel({ onClose }: { onClose: () => void }) {
 }
 
 export function HudDashboard({ eve, onOpenChat, onOpenWorkshop, onOpenSecurity }: HudDashboardProps) {
-  const [now, setNow] = useState(() => new Date())
+  const [now, setNow] = useState<Date | null>(null)
+  const [online, setOnline] = useState(true)
   const [camera, setCamera] = useState(false)
   const onlineModules = EVE_MODULES.filter((module) => module.state === "online").length
   const messages = eve.activeSession?.messages.length ?? 0
   const status = STATUS[eve.status]
 
   useEffect(() => {
-    const timer = window.setInterval(() => setNow(new Date()), 1000)
-    return () => window.clearInterval(timer)
+    const update = () => {
+      setNow(new Date())
+      setOnline(navigator.onLine)
+    }
+    update()
+    window.addEventListener("online", update)
+    window.addEventListener("offline", update)
+    const timer = window.setInterval(update, 1000)
+    return () => {
+      window.clearInterval(timer)
+      window.removeEventListener("online", update)
+      window.removeEventListener("offline", update)
+    }
   }, [])
 
   return (
@@ -210,15 +222,15 @@ export function HudDashboard({ eve, onOpenChat, onOpenWorkshop, onOpenSecurity }
           <HudCard eyebrow="AMBIENTE / CLOCK" title="Tempo local" icon={<Thermometer size={14} />} className="eve-hud-card-weather">
             <div className="flex items-end justify-between">
               <div>
-                <div className="font-display text-3xl font-semibold tracking-tight">{now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</div>
-                <div className="mt-1 text-xs text-eve-dim">{now.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" })}</div>
+                <div className="font-display text-3xl font-semibold tracking-tight">{now ? now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : "--:--"}</div>
+                <div className="mt-1 text-xs text-eve-dim">{now ? now.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" }) : "sincronizando relógio"}</div>
               </div>
               <div className="text-right font-mono text-[9px] tracking-[0.1em] text-eve-signal">
                 <div>LOCAL</div><div>BR / SP</div>
               </div>
             </div>
             <div className="mt-4 grid grid-cols-3 gap-2">
-              <Metric label="REDE" value={typeof navigator !== "undefined" && navigator.onLine ? "OK" : "OFF"} detail="browser" />
+              <Metric label="REDE" value={online ? "OK" : "OFF"} detail="browser" />
               <Metric label="MODO" value="HUD" detail="interface" />
               <Metric label="MSG" value={String(messages)} detail="sessão atual" />
             </div>
