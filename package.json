@@ -2,7 +2,9 @@
   "name": "project",
   "private": true,
   "type": "module",
-  "imports": {"#/*": "./src/*"},
+  "imports": {
+    "#/*": "./src/*"
+  },
   "scripts": {
     "dev": "vite dev --host 0.0.0.0 --port 13000",
     "build": "vite build",
@@ -16,7 +18,8 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
-    "verify": "pnpm test:eve && pnpm lint && pnpm typecheck && pnpm build"
+    "verify": "pnpm test:eve && pnpm test:eve-hud && pnpm lint && pnpm typecheck && pnpm build",
+    "test:eve-hud": "node --test scripts/eve-hud.test.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
