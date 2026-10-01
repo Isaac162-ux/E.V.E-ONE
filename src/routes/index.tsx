@@ -10,7 +10,7 @@ import {
 } from "#/components/eve/panels.tsx"
 import { AccessGate, SecurityPanel } from "#/components/eve/security.tsx"
 import { Workshop } from "#/components/eve/workshop.tsx"
-import { HudDashboard } from "#/components/eve/hud-dashboard.tsx"
+import { HudDashboard } from "#/components/ui/eve/hud-dashboard.tsx"
 import { MAX_ATTACHMENTS, useEve } from "#/hooks/use-eve.ts"
 import { noteAreaAttempt } from "#/lib/auth.functions.ts"
 import { EVE_MODEL, type EveAttachment, type EveMessage } from "#/lib/eve/core.ts"
