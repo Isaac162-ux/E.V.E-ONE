@@ -62,7 +62,7 @@ export interface EveAutonomyLevel {
   note: string
 }
 
-export const EVE_MODEL = "claude-sonnet-4.6"
+export const EVE_PROVIDER_SUMMARY = "FASTAPI · IA MULTIPROVEDOR"
 
 export const EVE_MODULES: EveModule[] = [
   {
@@ -71,7 +71,8 @@ export const EVE_MODULES: EveModule[] = [
     code: "COG-01",
     state: "online",
     summary: "Raciocínio, redação, análise e planejamento",
-    detail: `Executa no modelo ${EVE_MODEL}, com streaming em tempo real.`,
+    detail:
+      "Selecione Gemini, OpenRouter ou Groq no compositor; respostas chegam em streaming pela API FastAPI.",
   },
   {
     id: "vision",
@@ -94,8 +95,9 @@ export const EVE_MODULES: EveModule[] = [
     name: "Memória episódica",
     code: "MEM-04",
     state: "online",
-    summary: "Guarda fatos que você ensina e reaproveita em novas conversas",
-    detail: "A curadoria é sua: todo fato pode ser esquecido em um clique.",
+    summary: "Guarda fatos neste navegador para novas conversas",
+    detail:
+      "A memória usa o armazenamento local do navegador; não sincroniza entre dispositivos e pode ser apagada por você.",
   },
   {
     id: "web",
@@ -172,7 +174,7 @@ export const EVE_AUTONOMY: EveAutonomyLevel[] = [
 ]
 
 export const EVE_IDENTITY =
-  "E.V.E. — Entidade Virtual Evolutiva. Console de inteligência assistida."
+  "E.V.E. REN — Entidade Virtual Evolutiva. Console de inteligência assistida."
 
 export const MEMORY_PATTERN = /\[\[\s*MEM\s*:\s*([^\]\n]{3,240})\]\]/gi
 
@@ -235,7 +237,7 @@ export function buildSystemPrompt({
     .join(", ")
 
   return [
-    "Você é E.V.E., a inteligência central de um console operacional criado pelo seu usuário.",
+    "Você é E.V.E. REN, a inteligência central de um console operacional criado pelo seu usuário.",
     "",
     "Postura:",
     "- Escreva em português do Brasil, com voz calma, precisa e direta. Sem bajulação, sem excesso de exclamações, sem emojis.",
@@ -275,7 +277,7 @@ export function buildSystemPrompt({
       ? manifest
       : "- (manifesto indisponível nesta chamada)",
     "",
-    "Memória de longo prazo já conhecida:",
+    "Memória curada disponível nesta conversa:",
     knownFacts,
     "",
     "Aprendizado:",

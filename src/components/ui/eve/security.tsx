@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useState } from "react"
 
 import { getAccessLog } from "#/lib/auth.functions.ts"
-import type { AccessEntry, AccessSummary, AuthUser } from "#/lib/auth.functions.ts"
+import type {
+  AccessEntry,
+  AccessSummary,
+  AuthUser,
+} from "#/lib/auth.functions.ts"
 
 /**
  * Vigilância de acessos: mostra o que o sistema registrou sobre tentativas de
@@ -45,8 +49,8 @@ export function AccessGate({
   onEnter: () => void
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/85 px-4">
-      <section className="w-full max-w-sm rounded-sm border border-eve-amber/40 bg-eve-panel p-5">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/75 px-4 backdrop-blur-md">
+      <section className="eve-glass w-full max-w-sm rounded-2xl border border-eve-amber/50 p-5 shadow-[0_24px_80px_-48px_#ffd18a66]">
         <p className="font-mono text-[10px] tracking-[0.2em] text-eve-amber">
           ACESSO RESTRITO
         </p>
@@ -54,8 +58,8 @@ export function AccessGate({
           {area} exige credencial de administrador
         </h2>
         <p className="mt-2 text-[12.5px] leading-relaxed text-eve-dim">
-          Esta tentativa ficou registrada na vigilância de acessos, com horário
-          e origem. Entre com a credencial para continuar.
+          As tentativas são registradas quando o banco de dados está disponível.
+          Entre com a credencial de administrador para continuar.
         </p>
         <div className="mt-4 flex flex-wrap gap-2">
           <button
@@ -94,8 +98,8 @@ export function SecurityPanel({
   const [loading, setLoading] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
 
-  const load = useCallback(async () => {
-    setLoading(true)
+  const load = useCallback(async (showLoading = true) => {
+    if (showLoading) setLoading(true)
     try {
       const result = await getAccessLog()
       if (!result.authorized) {
@@ -108,7 +112,9 @@ export function SecurityPanel({
       setSummary(result.summary)
       setNotice(null)
     } catch {
-      setNotice("Não consegui ler o registro de acessos.")
+      setNotice(
+        "O registro está indisponível. Verifique a conexão com o banco de dados e tente novamente.",
+      )
     } finally {
       setLoading(false)
     }
@@ -116,14 +122,37 @@ export function SecurityPanel({
 
   useEffect(() => {
     if (!open) return
-    void load()
-  }, [open, load])
+    let active = true
+    void getAccessLog().then(
+      (result) => {
+        if (!active) return
+        if (!result.authorized) {
+          setEntries([])
+          setSummary(null)
+          setNotice("Sessão encerrada. Entre de novo para ver o registro.")
+          return
+        }
+        setEntries(result.entries)
+        setSummary(result.summary)
+        setNotice(null)
+      },
+      () => {
+        if (active)
+          setNotice(
+            "O registro está indisponível. Verifique a conexão com o banco de dados e tente novamente.",
+          )
+      },
+    )
+    return () => {
+      active = false
+    }
+  }, [open])
 
   if (!open) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-background">
-      <header className="flex shrink-0 flex-wrap items-center gap-3 border-b border-eve-hair px-4 py-3">
+    <div className="eve-shell fixed inset-0 z-50 flex flex-col bg-background">
+      <header className="eve-topbar flex shrink-0 flex-wrap items-center gap-3 border-b border-eve-hair px-4 py-3">
         <div className="min-w-0 flex-1">
           <h2 className="font-display text-[15px] font-semibold tracking-[0.14em] text-foreground">
             VIGILÂNCIA DE ACESSOS
@@ -139,7 +168,7 @@ export function SecurityPanel({
           disabled={loading}
           className="rounded-sm border border-eve-hair px-3 py-1.5 font-mono text-[10px] tracking-[0.14em] text-eve-dim hover:text-foreground disabled:opacity-40"
         >
-          {loading ? "LENDO…" : "ATUALIZAR"}
+          {loading || (!summary && !notice) ? "LENDO…" : "ATUALIZAR"}
         </button>
         <button
           type="button"
@@ -168,10 +197,26 @@ export function SecurityPanel({
       {summary && (
         <div className="grid shrink-0 grid-cols-2 gap-2 border-b border-eve-hair px-4 py-3 sm:grid-cols-4">
           {[
-            { label: "EVENTOS 24H", value: summary.total, tone: "text-foreground" },
-            { label: "RECUSAS", value: summary.failed, tone: "text-destructive" },
-            { label: "BLOQUEIOS", value: summary.blocked, tone: "text-eve-amber" },
-            { label: "ÁREA RESTRITA", value: summary.denied, tone: "text-eve-amber" },
+            {
+              label: "EVENTOS 24H",
+              value: summary.total,
+              tone: "text-foreground",
+            },
+            {
+              label: "RECUSAS",
+              value: summary.failed,
+              tone: "text-destructive",
+            },
+            {
+              label: "BLOQUEIOS",
+              value: summary.blocked,
+              tone: "text-eve-amber",
+            },
+            {
+              label: "ÁREA RESTRITA",
+              value: summary.denied,
+              tone: "text-eve-amber",
+            },
           ].map((item) => (
             <div
               key={item.label}
@@ -180,7 +225,9 @@ export function SecurityPanel({
               <p className="font-mono text-[9.5px] tracking-[0.18em] text-eve-dim">
                 {item.label}
               </p>
-              <p className={`mt-1 font-display text-xl font-semibold ${item.tone}`}>
+              <p
+                className={`mt-1 font-display text-xl font-semibold ${item.tone}`}
+              >
                 {item.value}
               </p>
             </div>
@@ -222,7 +269,9 @@ export function SecurityPanel({
                   )}
                 </div>
                 <p className="mt-1.5 text-[12.5px] text-foreground/85">
-                  {entry.account ? `Conta: ${entry.account}` : "Conta não informada"}
+                  {entry.account
+                    ? `Conta: ${entry.account}`
+                    : "Conta não informada"}
                   {entry.detail ? ` — ${entry.detail}` : ""}
                 </p>
               </li>

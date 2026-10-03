@@ -1,0 +1,6 @@
+# Copy to .dev.vars and use the same generated value as EVE_API_TOKEN in backend/.env.
+EVE_FASTAPI_BASE_URL=http://127.0.0.1:8000
+EVE_FASTAPI_API_KEY=replace-with-the-same-random-backend-token
+
+# Optional: needed only for administrator login and database-backed features.
+DATABASE_URL=postgres://usuario:senha@localhost:5432/eve

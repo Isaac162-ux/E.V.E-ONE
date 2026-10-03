@@ -1,0 +1,28 @@
+{
+  "name": "E.V.E. REN",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "22"
+    },
+    "ghcr.io/devcontainers/features/python:1": {
+      "version": "3.12"
+    }
+  },
+  "containerEnv": {
+    "EVE_FASTAPI_BASE_URL": "http://127.0.0.1:8000"
+  },
+  "forwardPorts": [13000, 8000],
+  "portsAttributes": {
+    "13000": {
+      "label": "E.V.E. REN",
+      "onAutoForward": "openBrowser",
+      "visibility": "private"
+    },
+    "8000": {
+      "label": "FastAPI · Swagger",
+      "onAutoForward": "notify",
+      "visibility": "private"
+    }
+  }
+}

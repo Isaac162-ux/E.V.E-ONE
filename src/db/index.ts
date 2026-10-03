@@ -1,31 +1,56 @@
-import * as React from "react"
+import { drizzle } from "drizzle-orm/postgres-js"
+import type { PostgresJsDatabase } from "drizzle-orm/postgres-js"
+import postgres from "postgres"
 
-const MOBILE_BREAKPOINT = 768
-const MOBILE_QUERY = `(max-width: ${MOBILE_BREAKPOINT - 1}px)`
+import * as schema from "./schema/auth.ts"
 
-// One MediaQueryList backs both the subscription and the read, so the value
-// React renders can only move when the subscription has announced it. Built
-// lazily: the module is imported during SSR, where `window` does not exist.
-let mediaQuery: MediaQueryList | undefined
-function getMediaQuery() {
-  mediaQuery ??= window.matchMedia(MOBILE_QUERY)
-  return mediaQuery
+type EveDatabase = PostgresJsDatabase<typeof schema>
+
+interface CloudflareDatabaseBindings {
+  DATABASE_URL?: string
+  HYPERDRIVE?: { connectionString?: string }
 }
 
-function subscribe(onChange: () => void) {
-  const mql = getMediaQuery()
-  mql.addEventListener("change", onChange)
-  return () => mql.removeEventListener("change", onChange)
+export class DatabaseNotConfiguredError extends Error {
+  constructor() {
+    super("Configure o binding HYPERDRIVE ou DATABASE_URL no servidor.")
+    this.name = "DatabaseNotConfiguredError"
+  }
 }
 
-function getSnapshot() {
-  return getMediaQuery().matches
+async function databaseConnectionString(): Promise<string> {
+  try {
+    const workers = await import("cloudflare:workers")
+    const bindings = workers.env as unknown as CloudflareDatabaseBindings
+    const url = bindings.HYPERDRIVE?.connectionString ?? bindings.DATABASE_URL
+    if (url) return url
+  } catch {
+    // Local Node.js development does not provide the Workers bindings module.
+  }
+
+  const localUrl = process.env.DATABASE_URL?.trim()
+  if (localUrl) return localUrl
+
+  throw new DatabaseNotConfiguredError()
 }
 
-function getServerSnapshot() {
-  return false
-}
+/**
+ * Open a short-lived Drizzle client for one server operation. In Workers,
+ * Hyperdrive owns the shared connection pool; credentials stay in bindings.
+ */
+export async function withDatabase<T>(
+  operation: (database: EveDatabase) => Promise<T>,
+): Promise<T> {
+  const connectionString = await databaseConnectionString()
+  const client = postgres(connectionString, {
+    max: 1,
+    fetch_types: false,
+    prepare: true,
+  })
 
-export function useIsMobile() {
-  return React.useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
+  try {
+    return await operation(drizzle(client, { schema }))
+  } finally {
+    await client.end({ timeout: 5 })
+  }
 }

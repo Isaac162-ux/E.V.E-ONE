@@ -7,12 +7,20 @@ import {
   StateCore,
   StatePill,
   SystemRail,
-} from "#/components/eve/panels.tsx"
-import { AccessGate, SecurityPanel } from "#/components/eve/security.tsx"
-import { Workshop } from "#/components/eve/workshop.tsx"
+} from "#/components/ui/eve/panels.tsx"
+import { AccessGate, SecurityPanel } from "#/components/ui/eve/security.tsx"
+import { Workshop } from "#/components/ui/eve/workshop.tsx"
 import { MAX_ATTACHMENTS, useEve } from "#/hooks/use-eve.ts"
 import { noteAreaAttempt } from "#/lib/auth.functions.ts"
-import { EVE_MODEL, type EveAttachment, type EveMessage } from "#/lib/eve/core.ts"
+import {
+  loadEveProviders,
+  type EveProviderId,
+  type EveProviderOption,
+} from "#/lib/eve/client.ts"
+import {
+  type EveAttachment,
+  type EveMessage,
+} from "#/lib/eve/core.ts"
 
 export const Route = createFileRoute("/")({
   validateSearch: (
@@ -52,7 +60,10 @@ function inlineFormat(text: string, keyPrefix: string): ReactNode[] {
     const token = match[0]
     if (token.startsWith("**")) {
       nodes.push(
-        <strong key={`${keyPrefix}-b${index}`} className="font-semibold text-foreground">
+        <strong
+          key={`${keyPrefix}-b${index}`}
+          className="font-semibold text-foreground"
+        >
           {token.slice(2, -2)}
         </strong>,
       )
@@ -217,8 +228,8 @@ function MessageBlock({ message }: { message: EveMessage }) {
             )}
           </div>
         )}
-        <div className="max-w-[86%] rounded-sm border border-eve-signal/25 bg-eve-signal/8 px-3.5 py-2.5">
-          <p className="text-[13.5px] leading-relaxed whitespace-pre-wrap text-foreground">
+        <div className="eve-message-user max-w-[86%] rounded-xl border px-3.5 py-2.5">
+          <p className="text-[14px] leading-relaxed whitespace-pre-wrap text-foreground">
             {message.text}
           </p>
         </div>
@@ -234,13 +245,15 @@ function MessageBlock({ message }: { message: EveMessage }) {
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[10px] tracking-[0.14em] text-eve-dim">
         <span className="text-eve-signal">E.V.E.</span>
         <span>{formatClock(message.createdAt)}</span>
-        {message.latencyMs !== undefined && <span>{(message.latencyMs / 1000).toFixed(1)}S</span>}
+        {message.latencyMs !== undefined && (
+          <span>{(message.latencyMs / 1000).toFixed(1)}S</span>
+        )}
         {message.tokens !== undefined && message.tokens > 0 && (
           <span>{message.tokens} TOK</span>
         )}
       </div>
 
-      <div className="border-l border-eve-hair pl-4">
+      <div className="eve-message-assistant border-l border-eve-hair pl-4">
         {message.status === "streaming" && message.text === "" ? (
           <p className="flex items-center gap-2 font-mono text-[12px] text-eve-dim">
             <span className="eve-core-pulse size-1.5 rounded-full bg-eve-signal" />
@@ -256,8 +269,12 @@ function MessageBlock({ message }: { message: EveMessage }) {
         )}
 
         {message.status === "error" && (
-          <p className="mt-2 rounded-sm border border-destructive/40 bg-destructive/10 px-2.5 py-1.5 text-[12px] text-destructive">
-            {message.error ?? "A resposta falhou."} Tente enviar de novo.
+          <p
+            role="alert"
+            className="mt-2 rounded-sm border border-destructive/40 bg-destructive/10 px-2.5 py-1.5 text-[12px] text-destructive"
+          >
+            {message.error ??
+              "A resposta não foi concluída. Confira a conexão e tente enviar novamente."}
           </p>
         )}
 
@@ -284,15 +301,15 @@ function EmptyState({ onPick }: { onPick: (text: string) => void }) {
     <div className="mx-auto flex w-full max-w-2xl flex-col items-center px-2 py-10 text-center">
       <StateCore status="idle" />
       <p className="mt-6 font-mono text-[10px] tracking-[0.32em] text-eve-dim">
-        SISTEMA ONLINE
+        CONSOLE PRONTO
       </p>
       <h2 className="mt-3 font-display text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
         Pergunte, anexe, dite.
       </h2>
       <p className="mt-3 max-w-lg text-[13.5px] leading-relaxed text-eve-dim">
-        E.V.E. responde em tempo real, lê imagens, guarda o que você ensina e
-        mostra o estado de cada módulo. Nível de autonomia atual: conversa e
-        leitura.
+        Converse, envie imagens ou dite uma mensagem. Para gerar respostas, o
+        servidor precisa estar conectado a um gateway de IA. Sessões e fatos de
+        memória ficam neste navegador.
       </p>
 
       <div className="mt-7 grid w-full gap-2 sm:grid-cols-2">
@@ -301,7 +318,7 @@ function EmptyState({ onPick }: { onPick: (text: string) => void }) {
             key={suggestion}
             type="button"
             onClick={() => onPick(suggestion)}
-            className="rounded-sm border border-eve-hair bg-eve-panel-2 px-3.5 py-3 text-left text-[12.5px] leading-snug text-foreground/80 transition-colors hover:border-eve-signal/50 hover:bg-eve-panel hover:text-foreground"
+            className="eve-suggestion rounded-xl border border-eve-outline/60 px-3.5 py-3 text-left text-[13px] leading-snug text-foreground transition-colors hover:border-eve-signal hover:text-foreground"
           >
             {suggestion}
           </button>
@@ -317,12 +334,18 @@ function ConsolePage() {
   const { user } = Route.useRouteContext()
   const { painel } = Route.useSearch()
   const [draft, setDraft] = useState("")
+  const [provider, setProvider] = useState<EveProviderId>("gemini")
+  const [providers, setProviders] = useState<EveProviderOption[]>([])
+  const [providersReady, setProvidersReady] = useState(false)
+  const [providerError, setProviderError] = useState<string | null>(null)
   const [pending, setPending] = useState<EveAttachment[]>([])
   const [panel, setPanel] = useState<"none" | "sessions" | "system">("none")
   const [localError, setLocalError] = useState<string | null>(null)
   const [workshop, setWorkshop] = useState(false)
   const [security, setSecurity] = useState(false)
   const [gate, setGate] = useState<string | null>(null)
+  const workshopOpen = workshop || Boolean(user && painel === "oficina")
+  const securityOpen = security || Boolean(user && painel === "seguranca")
 
   const scrollRef = useRef<HTMLDivElement | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement | null>(null)
@@ -334,9 +357,33 @@ function ConsolePage() {
   const streamingLength = lastMessage?.text.length ?? 0
 
   useEffect(() => {
+    const controller = new AbortController()
+    void loadEveProviders(controller.signal)
+      .then((catalog) => {
+        setProviders(catalog.providers)
+        setProvider((current) => {
+          const usable = catalog.providers.filter((item) => item.configured)
+          if (usable.some((item) => item.id === current)) return current
+          return (
+            usable.find((item) => item.id === catalog.defaultProvider)?.id ??
+            usable[0]?.id ??
+            catalog.defaultProvider
+          )
+        })
+        setProvidersReady(true)
+      })
+      .catch((error: unknown) => {
+        if (controller.signal.aborted) return
+        setProvidersReady(true)
+        setProviderError(
+          error instanceof Error ? error.message : "API FastAPI indisponível.",
+        )
+      })
+    return () => controller.abort()
+  }, [])
+
+  useEffect(() => {
     if (!user || !painel) return
-    if (painel === "oficina") setWorkshop(true)
-    if (painel === "seguranca") setSecurity(true)
     void router.navigate({ to: "/", search: {}, replace: true })
   }, [user, painel, router])
 
@@ -365,6 +412,10 @@ function ConsolePage() {
   useEffect(() => {
     const node = scrollRef.current
     if (!node) return
+    if (messages.length === 0) {
+      node.scrollTop = 0
+      return
+    }
     node.scrollTop = node.scrollHeight
   }, [messages.length, streamingLength])
 
@@ -378,7 +429,7 @@ function ConsolePage() {
   function submit() {
     if (eve.status === "thinking") return
     if (!draft.trim() && pending.length === 0) return
-    void eve.send(draft, pending)
+    void eve.send(draft, pending, provider)
     setDraft("")
     setPending([])
     setLocalError(null)
@@ -419,19 +470,21 @@ function ConsolePage() {
     )
   }
 
-  const notices = [localError, eve.error].filter(Boolean) as string[]
+  const notices = [
+    localError ?? (lastMessage?.status === "error" ? null : eve.error),
+  ].filter(Boolean) as string[]
 
   return (
-    <div className="flex h-dvh flex-col overflow-hidden bg-background text-foreground">
-      <header className="flex shrink-0 items-center gap-3 border-b border-eve-hair bg-eve-panel-2/40 px-4 py-3 sm:px-5">
+    <div className="eve-shell flex h-dvh flex-col overflow-hidden bg-background text-foreground">
+      <header className="eve-topbar flex shrink-0 flex-wrap items-center gap-3 border-b border-eve-hair bg-eve-panel-2/65 px-4 py-3 backdrop-blur-xl xl:flex-nowrap sm:px-5">
         <StateCore status={eve.status} size="sm" />
 
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <span className="font-display text-[17px] font-semibold tracking-[0.16em] text-foreground">
-              E.V.E.
+            <span className="font-display text-[15px] font-semibold tracking-[0.12em] text-foreground sm:text-[17px] sm:tracking-[0.16em]">
+              E.V.E. <span className="text-eve-blue">REN</span>
             </span>
-            <span className="hidden font-mono text-[10px] tracking-[0.2em] text-eve-dim sm:inline">
+            <span className="hidden font-mono text-[10px] tracking-[0.2em] text-eve-dim xl:inline">
               ENTIDADE VIRTUAL EVOLUTIVA
             </span>
           </div>
@@ -440,20 +493,20 @@ function ConsolePage() {
           </div>
         </div>
 
-        <div className="hidden items-center gap-3 md:flex">
+        <div className="hidden items-center gap-3 xl:flex">
           <span className="font-mono text-[10px] tracking-[0.16em] text-eve-dim">
             AUTONOMIA A0–A1
           </span>
           <span className="font-mono text-[10px] tracking-[0.16em] text-eve-dim">
-            {EVE_MODEL}
+            NÚCLEO MULTI-PROVEDOR
           </span>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex w-full flex-wrap items-center justify-end gap-2 xl:w-auto xl:shrink-0">
           <button
             type="button"
             onClick={openWorkshop}
-            className="flex items-center gap-2 rounded-sm border border-eve-signal/45 bg-eve-signal/10 px-2.5 py-1.5 font-mono text-[10px] tracking-[0.14em] text-eve-signal transition-colors hover:bg-eve-signal/18"
+            className="flex min-h-11 items-center gap-2 rounded-sm border border-eve-signal/45 bg-eve-signal/10 px-2.5 py-1.5 font-mono text-[9px] tracking-[0.1em] text-eve-signal transition-colors hover:bg-eve-signal/18 sm:text-[10px] sm:tracking-[0.14em]"
           >
             OFICINA
             {eve.proposals.length > 0 && (
@@ -465,7 +518,7 @@ function ConsolePage() {
           <button
             type="button"
             onClick={openSecurity}
-            className="rounded-sm border border-eve-hair px-2.5 py-1.5 font-mono text-[10px] tracking-[0.14em] text-eve-dim transition-colors hover:border-eve-amber/50 hover:text-eve-amber"
+            className="min-h-11 rounded-sm border border-eve-outline/60 px-2.5 py-1.5 font-mono text-[9px] tracking-[0.08em] text-eve-dim transition-colors hover:border-eve-amber/50 hover:text-eve-amber sm:text-[10px] sm:tracking-[0.14em]"
           >
             {user ? "VIGILÂNCIA" : "🔒 VIGILÂNCIA"}
           </button>
@@ -473,14 +526,14 @@ function ConsolePage() {
             <button
               type="button"
               onClick={() => void signOut()}
-              className="hidden rounded-sm border border-eve-hair px-2.5 py-1.5 font-mono text-[10px] tracking-[0.14em] text-eve-dim transition-colors hover:text-foreground sm:block"
+              className="min-h-11 rounded-sm border border-eve-outline/60 px-2.5 py-1.5 font-mono text-[9px] tracking-[0.08em] text-eve-dim transition-colors hover:text-foreground sm:text-[10px] sm:tracking-[0.14em]"
             >
               SAIR
             </button>
           ) : (
             <a
               href="/login"
-              className="hidden rounded-sm border border-eve-amber/45 bg-eve-amber/10 px-2.5 py-1.5 font-mono text-[10px] tracking-[0.14em] text-eve-amber sm:block"
+              className="flex min-h-11 items-center rounded-sm border border-eve-amber/45 bg-eve-amber/10 px-2.5 py-1.5 font-mono text-[9px] tracking-[0.08em] text-eve-amber sm:text-[10px] sm:tracking-[0.14em]"
             >
               ENTRAR
             </a>
@@ -488,21 +541,25 @@ function ConsolePage() {
           <button
             type="button"
             onClick={() => setPanel(panel === "sessions" ? "none" : "sessions")}
-            className="rounded-sm border border-eve-hair px-2.5 py-1.5 font-mono text-[10px] tracking-[0.14em] text-eve-dim transition-colors hover:border-eve-signal/50 hover:text-foreground lg:hidden"
+            aria-expanded={panel === "sessions"}
+            aria-controls="eve-session-drawer"
+            className="min-h-11 rounded-sm border border-eve-outline/60 px-2.5 py-1.5 font-mono text-[9px] tracking-[0.08em] text-eve-dim transition-colors hover:border-eve-signal/50 hover:text-foreground lg:hidden sm:text-[10px] sm:tracking-[0.14em]"
           >
             SESSÕES
           </button>
           <button
             type="button"
             onClick={() => setPanel(panel === "system" ? "none" : "system")}
-            className="rounded-sm border border-eve-hair px-2.5 py-1.5 font-mono text-[10px] tracking-[0.14em] text-eve-dim transition-colors hover:border-eve-signal/50 hover:text-foreground xl:hidden"
+            aria-expanded={panel === "system"}
+            aria-controls="eve-system-drawer"
+            className="min-h-11 rounded-sm border border-eve-outline/60 px-2.5 py-1.5 font-mono text-[9px] tracking-[0.08em] text-eve-dim transition-colors hover:border-eve-signal/50 hover:text-foreground 2xl:hidden sm:text-[10px] sm:tracking-[0.14em]"
           >
             SISTEMA
           </button>
           <button
             type="button"
             onClick={eve.newSession}
-            className="rounded-sm border border-eve-signal/45 bg-eve-signal/10 px-3 py-1.5 font-mono text-[10px] tracking-[0.14em] text-eve-signal transition-colors hover:bg-eve-signal/18"
+            className="min-h-11 rounded-sm border border-eve-signal/45 bg-eve-signal/10 px-3 py-1.5 font-mono text-[9px] tracking-[0.08em] text-eve-signal transition-colors hover:bg-eve-signal/18 sm:text-[10px] sm:tracking-[0.14em]"
           >
             NOVA SESSÃO
           </button>
@@ -510,7 +567,7 @@ function ConsolePage() {
       </header>
 
       <div className="flex min-h-0 flex-1">
-        <aside className="hidden w-[252px] shrink-0 border-r border-eve-hair bg-eve-panel-2/30 lg:flex lg:flex-col">
+        <aside className="eve-rail hidden w-[240px] shrink-0 border-r border-eve-hair bg-eve-panel-2/30 lg:flex lg:flex-col">
           <SessionRail
             sessions={eve.sessions}
             activeId={eve.activeId}
@@ -521,7 +578,7 @@ function ConsolePage() {
           />
         </aside>
 
-        <main className="flex min-w-0 flex-1 flex-col">
+        <main className="eve-ambient flex min-w-0 flex-1 flex-col">
           <div
             ref={scrollRef}
             className="min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-6 sm:py-6"
@@ -560,7 +617,7 @@ function ConsolePage() {
             </div>
           )}
 
-          <div className="shrink-0 border-t border-eve-hair bg-eve-panel-2/30 px-4 py-4 sm:px-6">
+          <div className="eve-chat-composer shrink-0 border-t border-eve-outline/35 bg-eve-panel/65 px-4 py-4 shadow-[0_-18px_52px_-40px_#65e6ff70] backdrop-blur-xl sm:px-6">
             <div className="mx-auto w-full max-w-3xl">
               {pending.length > 0 && (
                 <div className="mb-3 flex flex-wrap gap-2">
@@ -594,12 +651,12 @@ function ConsolePage() {
                 </div>
               )}
 
-              <div className="flex items-end gap-2 rounded-sm border border-eve-hair bg-background px-3 py-2.5 focus-within:border-eve-signal/60">
+              <div className="eve-input-surface flex flex-wrap items-end justify-between gap-2 rounded-xl border border-eve-outline/60 px-2.5 py-2.5 transition-colors focus-within:border-eve-signal sm:flex-nowrap sm:px-3">
                 <button
                   type="button"
                   onClick={() => fileRef.current?.click()}
                   aria-label="Anexar imagem"
-                  className="rounded-sm border border-eve-hair px-2 py-1.5 font-mono text-[10px] tracking-[0.1em] text-eve-dim transition-colors hover:border-eve-signal/50 hover:text-foreground"
+                  className="min-h-11 min-w-11 rounded-md border border-eve-outline/60 px-2 py-1.5 font-mono text-[10px] tracking-[0.1em] text-eve-dim transition-colors hover:border-eve-signal/50 hover:text-foreground"
                 >
                   IMG
                 </button>
@@ -620,7 +677,7 @@ function ConsolePage() {
                   onClick={toggleMic}
                   aria-pressed={eve.status === "listening"}
                   aria-label="Ditar por voz"
-                  className={`rounded-sm border px-2 py-1.5 font-mono text-[10px] tracking-[0.1em] transition-colors ${
+                  className={`min-h-11 min-w-11 rounded-md border px-2 py-1.5 font-mono text-[10px] tracking-[0.1em] transition-colors ${
                     eve.status === "listening"
                       ? "border-eve-ok/60 bg-eve-ok/12 text-eve-ok"
                       : "border-eve-hair text-eve-dim hover:border-eve-signal/50 hover:text-foreground"
@@ -633,6 +690,7 @@ function ConsolePage() {
                   ref={textareaRef}
                   rows={1}
                   value={draft}
+                  aria-label="Mensagem para E.V.E."
                   onChange={(event) => setDraft(event.target.value)}
                   onKeyDown={(event) => {
                     if (event.key === "Enter" && !event.shiftKey) {
@@ -642,7 +700,7 @@ function ConsolePage() {
                     if (event.key === "Escape") eve.stop()
                   }}
                   placeholder="Escreva um comando ou faça uma pergunta para a E.V.E."
-                  className="max-h-44 min-h-[36px] flex-1 resize-none bg-transparent px-1 py-1.5 text-[13.5px] leading-relaxed text-foreground outline-none placeholder:text-eve-dim"
+                  className="order-first max-h-44 min-h-11 w-full min-w-0 basis-full flex-1 resize-none bg-transparent px-1 py-2 text-[13.5px] leading-relaxed text-foreground outline-none placeholder:text-eve-dim sm:order-none sm:min-w-[120px] sm:basis-auto"
                 />
 
                 <button
@@ -650,7 +708,7 @@ function ConsolePage() {
                   onClick={eve.toggleVoiceOut}
                   aria-pressed={eve.voiceOut}
                   aria-label="Ler respostas em voz alta"
-                  className={`hidden rounded-sm border px-2 py-1.5 font-mono text-[10px] tracking-[0.1em] transition-colors sm:block ${
+                  className={`min-h-11 min-w-11 rounded-md border px-2 py-1.5 font-mono text-[10px] tracking-[0.1em] transition-colors ${
                     eve.voiceOut
                       ? "border-eve-signal/60 bg-eve-signal/12 text-eve-signal"
                       : "border-eve-hair text-eve-dim hover:border-eve-signal/50 hover:text-foreground"
@@ -663,7 +721,7 @@ function ConsolePage() {
                   <button
                     type="button"
                     onClick={eve.stop}
-                    className="rounded-sm border border-eve-amber/60 bg-eve-amber/12 px-3 py-1.5 font-mono text-[10px] tracking-[0.14em] text-eve-amber"
+                    className="min-h-11 rounded-md border border-eve-amber/60 bg-eve-amber/12 px-3 py-1.5 font-mono text-[10px] tracking-[0.14em] text-eve-amber"
                   >
                     PARAR
                   </button>
@@ -672,7 +730,7 @@ function ConsolePage() {
                     type="button"
                     onClick={submit}
                     disabled={!draft.trim() && pending.length === 0}
-                    className="rounded-sm bg-eve-signal px-3 py-1.5 font-mono text-[10px] tracking-[0.14em] text-primary-foreground transition-opacity disabled:opacity-35"
+                    className="min-h-11 rounded-md bg-eve-signal px-3 py-1.5 font-mono text-[10px] tracking-[0.14em] text-primary-foreground transition-opacity disabled:opacity-35"
                   >
                     ENVIAR
                   </button>
@@ -681,6 +739,37 @@ function ConsolePage() {
 
               <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1 font-mono text-[10px] tracking-[0.12em] text-eve-dim">
                 <span>ENTER ENVIA · SHIFT+ENTER QUEBRA LINHA</span>
+                <label className="flex min-h-9 items-center gap-2" htmlFor="eve-provider">
+                  <span>IA</span>
+                  <select
+                    id="eve-provider"
+                    value={provider}
+                    onChange={(event) =>
+                      setProvider(event.target.value as EveProviderId)
+                    }
+                    disabled={providers.filter((item) => item.configured).length === 0}
+                    aria-label="Provedor de inteligência artificial"
+                    className="max-w-[190px] rounded-sm border border-eve-outline/60 bg-eve-panel px-2 py-1.5 font-mono text-[10px] tracking-normal text-foreground outline-none transition-colors focus:border-eve-signal disabled:opacity-60"
+                  >
+                    {providers.length === 0 ? (
+                      <option value="gemini">
+                        {providersReady ? "API indisponível" : "Conectando…"}
+                      </option>
+                    ) : (
+                      providers.map((item) => (
+                        <option key={item.id} value={item.id} disabled={!item.configured}>
+                          {item.label}
+                          {item.configured ? ` · ${item.model}` : " · configure no servidor"}
+                        </option>
+                      ))
+                    )}
+                  </select>
+                </label>
+                {providersReady && providers.every((item) => !item.configured) && (
+                  <span role="status" className="text-eve-amber">
+                    {providerError ? "API FastAPI indisponível" : "Configure uma chave de IA no backend"}
+                  </span>
+                )}
                 <span className="hidden sm:inline">
                   MÓDULOS ATIVOS {eve.activeModules.length}
                 </span>
@@ -690,7 +779,7 @@ function ConsolePage() {
                   onClick={openSecurity}
                   className="font-mono tracking-[0.12em] text-eve-dim underline decoration-dotted underline-offset-2 hover:text-eve-amber"
                 >
-                  {user ? `ADMIN: ${user.displayName}` : "SEM CREDENCIAL"}
+                  {user ? `ADMIN: ${user.displayName}` : "ENTRAR COMO ADMIN"}
                 </button>
                 <span className="hidden md:inline">
                   {eve.activeSession?.title ?? "SEM SESSÃO"}
@@ -700,7 +789,7 @@ function ConsolePage() {
           </div>
         </main>
 
-        <aside className="hidden w-[330px] shrink-0 border-l border-eve-hair bg-eve-panel-2/30 xl:flex xl:flex-col">
+        <aside className="eve-rail hidden w-[296px] shrink-0 border-l border-eve-hair bg-eve-panel-2/30 2xl:flex 2xl:flex-col">
           <SystemRail
             facts={eve.facts}
             onForget={eve.forgetFact}
@@ -710,7 +799,7 @@ function ConsolePage() {
       </div>
 
       <Workshop
-        open={workshop}
+        open={workshopOpen}
         onClose={() => setWorkshop(false)}
         onRequireAuth={() => {
           setWorkshop(false)
@@ -720,7 +809,7 @@ function ConsolePage() {
       />
 
       <SecurityPanel
-        open={security}
+        open={securityOpen}
         onClose={() => setSecurity(false)}
         user={user}
         onSignOut={() => void signOut()}
@@ -743,7 +832,7 @@ function ConsolePage() {
       )}
 
       {panel !== "none" && (
-        <div className="fixed inset-0 z-40 flex lg:hidden">
+        <div className="fixed inset-0 z-40 flex 2xl:hidden">
           <button
             type="button"
             aria-label="Fechar painel"
@@ -751,7 +840,12 @@ function ConsolePage() {
             className="absolute inset-0 bg-background/75"
           />
           {panel === "sessions" ? (
-            <div className="relative z-10 h-full w-[86%] max-w-[340px] border-r border-eve-hair bg-background">
+            <div
+              id="eve-session-drawer"
+              role="region"
+              aria-label="Painel de sessões"
+              className="relative z-10 h-full w-[86%] max-w-[340px] border-r border-eve-hair bg-background"
+            >
               <SessionRail
                 sessions={eve.sessions}
                 activeId={eve.activeId}
@@ -769,7 +863,12 @@ function ConsolePage() {
               />
             </div>
           ) : (
-            <div className="relative z-10 ml-auto h-full w-[86%] max-w-[340px] border-l border-eve-hair bg-background xl:hidden">
+            <div
+              id="eve-system-drawer"
+              role="region"
+              aria-label="Painel do sistema"
+              className="eve-glass relative z-10 ml-auto h-full w-[86%] max-w-[340px] border-l 2xl:hidden"
+            >
               <SystemRail
                 facts={eve.facts}
                 onForget={eve.forgetFact}
@@ -780,7 +879,6 @@ function ConsolePage() {
           )}
         </div>
       )}
-
     </div>
   )
 }

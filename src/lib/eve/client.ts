@@ -9,10 +9,25 @@ export interface EveStreamTurn {
   attachments?: { mediaType: string; data: string }[]
 }
 
+export type EveProviderId = "gemini" | "openrouter" | "groq"
+
+export interface EveProviderOption {
+  id: EveProviderId
+  label: string
+  model: string
+  configured: boolean
+}
+
+export interface EveProviderCatalog {
+  defaultProvider: EveProviderId
+  providers: EveProviderOption[]
+}
+
 export interface EveStreamInput {
   turns: EveStreamTurn[]
   facts: string[]
   autonomy: string
+  provider?: EveProviderId
   signal?: AbortSignal
 }
 
@@ -26,6 +41,20 @@ export interface EveStreamResult {
   tokens: number
 }
 
+export async function loadEveProviders(signal?: AbortSignal): Promise<EveProviderCatalog> {
+  const response = await fetch("/api/eve", { signal, cache: "no-store" })
+  const payload = (await response.json().catch(() => null)) as
+    | (Partial<EveProviderCatalog> & { error?: string })
+    | null
+  if (!response.ok || !payload || !Array.isArray(payload.providers)) {
+    throw new Error(payload?.error ?? "Não foi possível carregar os provedores de IA.")
+  }
+  return {
+    defaultProvider: payload.defaultProvider ?? "gemini",
+    providers: payload.providers,
+  }
+}
+
 export async function streamEve(
   input: EveStreamInput,
   handlers: EveStreamHandlers,
@@ -35,6 +64,7 @@ export async function streamEve(
     headers: { "Content-Type": "application/json" },
     signal: input.signal,
     body: JSON.stringify({
+      provider: input.provider,
       turns: input.turns,
       facts: input.facts,
       autonomy: input.autonomy,

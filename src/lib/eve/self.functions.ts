@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start"
 import { z } from "zod"
 
-import { getCurrentUser, noteRestrictedAccess } from "./auth.server.ts"
+import { getCurrentUser, noteRestrictedAccess } from "../auth.server.ts"
 import {
   listSourceFiles,
   readSourceFile,
