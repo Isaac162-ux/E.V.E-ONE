@@ -56,7 +56,7 @@ def load_settings() -> Settings:
         groq=ProviderSettings(
             id="groq",
             label="Groq",
-            model=os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile").strip(),
+            model=os.getenv("GROQ_MODEL", "openai/gpt-oss-120b").strip(),
             api_key=os.getenv("GROQ_API_KEY", "").strip(),
             endpoint=os.getenv(
                 "GROQ_BASE_URL", "https://api.groq.com/openai/v1"
