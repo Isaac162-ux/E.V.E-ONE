@@ -37,13 +37,13 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "E.V.E. — Console de Inteligência" },
+      { title: "E.V.E. REN — Console de Inteligência" },
       {
         name: "description",
         content:
           "E.V.E. é um console de inteligência assistida: conversa em tempo real, leitura de imagens, voz e memória curada por você.",
       },
-      { property: "og:title", content: "E.V.E. — Console de Inteligência" },
+      { property: "og:title", content: "E.V.E. REN — Console de Inteligência" },
       {
         property: "og:description",
         content:
@@ -90,10 +90,10 @@ function RootError({ reset }: ErrorComponentProps) {
     >
       <section className="flex w-full max-w-md flex-col items-center text-center">
         <h1 className="text-xl font-semibold tracking-tight text-foreground">
-          This page failed to load
+          Esta página não carregou
         </h1>
         <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-          An error stopped it from rendering.
+          Um erro impediu a interface de abrir.
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button
@@ -104,13 +104,13 @@ function RootError({ reset }: ErrorComponentProps) {
               reset()
             }}
           >
-            Try again
+            Tentar novamente
           </button>
           <a
             className="inline-flex h-9 items-center justify-center rounded-md border border-input bg-background px-4 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             href="/"
           >
-            Go home
+            Voltar ao início
           </a>
         </div>
       </section>

@@ -11,4 +11,4 @@ export const Route = createFileRoute("/api/health")({
         ),
     },
   },
-}
+})

@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react"
 
-import { listEveSource, readEveSource } from "#/lib/eve/self.functions.ts"
+import type { EveConversation } from "#/hooks/use-eve.ts"
 import { streamEve } from "#/lib/eve/client.ts"
+import { listEveSource, readEveSource } from "#/lib/eve/self.functions.ts"
+import type { EveSourceEntry, EveSourceFile } from "#/lib/eve/self.server.ts"
 import {
   type EveProposal,
   type VerifyOutcome,
@@ -9,8 +11,6 @@ import {
   readProposals,
   verifyProposal,
 } from "#/lib/eve/workshop.ts"
-import type { EveSourceEntry, EveSourceFile } from "#/lib/eve/self.server.ts"
-import type { EveConversation } from "#/hooks/use-eve.ts"
 
 const FULL_REVIEW_GOAL =
   "Faça uma autoinspeção completa: percorra o manifesto, escolha as duas melhorias de maior impacto para a experiência do usuário e proponha a de maior valor agora."
@@ -188,9 +188,7 @@ export function Workshop({
       }
     } catch (cause) {
       if (!(cause instanceof DOMException && cause.name === "AbortError")) {
-        setNotice(
-          cause instanceof Error ? cause.message : "A leitura falhou.",
-        )
+        setNotice(cause instanceof Error ? cause.message : "A leitura falhou.")
       }
     } finally {
       abortRef.current = null
@@ -229,15 +227,19 @@ export function Workshop({
   }
 
   const filtered = files.filter((entry) =>
-    query.trim() ? entry.path.toLowerCase().includes(query.trim().toLowerCase()) : true,
+    query.trim()
+      ? entry.path.toLowerCase().includes(query.trim().toLowerCase())
+      : true,
   )
   const groups = [...new Set(filtered.map((entry) => entry.group))]
-  const sortedProposals = [...eve.proposals].sort((a, b) => b.createdAt - a.createdAt)
+  const sortedProposals = [...eve.proposals].sort(
+    (a, b) => b.createdAt - a.createdAt,
+  )
 
   if (denied && files.length === 0) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-background px-4">
-        <section className="w-full max-w-sm rounded-sm border border-eve-amber/40 bg-eve-panel p-5">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/75 px-4 backdrop-blur-md">
+        <section className="eve-glass w-full max-w-sm rounded-2xl border border-eve-amber/50 p-5 shadow-[0_24px_80px_-48px_#ffd18a66]">
           <p className="font-mono text-[10px] tracking-[0.2em] text-eve-amber">
             ÁREA RESTRITA
           </p>
@@ -245,7 +247,8 @@ export function Workshop({
             A oficina exige credencial de administrador
           </h2>
           <p className="mt-2 text-[12.5px] leading-relaxed text-eve-dim">
-            Esta tentativa ficou registrada na vigilância de acessos.
+            As tentativas são registradas quando o banco de dados está
+            disponível.
           </p>
           <button
             type="button"
@@ -260,14 +263,15 @@ export function Workshop({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-background">
-      <header className="flex shrink-0 items-center gap-3 border-b border-eve-hair px-4 py-3">
+    <div className="eve-shell fixed inset-0 z-50 flex flex-col bg-background">
+      <header className="eve-topbar flex shrink-0 items-center gap-3 border-b border-eve-hair px-4 py-3">
         <div className="min-w-0 flex-1">
           <h2 className="font-display text-[15px] font-semibold tracking-[0.14em] text-foreground">
             OFICINA DE AUTOINSPEÇÃO
           </h2>
           <p className="mt-0.5 font-mono text-[10px] tracking-[0.16em] text-eve-dim">
-            {files.length} ARQUIVOS NO ESPELHO · {sortedProposals.length} PROPOSTA(S)
+            {files.length} ARQUIVOS NO ESPELHO · {sortedProposals.length}{" "}
+            PROPOSTA(S)
           </p>
         </div>
         <button
@@ -353,11 +357,18 @@ export function Workshop({
         <section className="flex min-h-0 flex-col border-b border-eve-hair lg:border-b-0">
           <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-eve-hair px-4 py-3">
             <span className="min-w-0 flex-1 truncate font-mono text-[11px] text-eve-dim">
-              {file ? `${file.path} · ${file.lines} linhas` : "Selecione um arquivo"}
+              {file
+                ? `${file.path} · ${file.lines} linhas`
+                : "Selecione um arquivo"}
             </span>
             <button
               type="button"
-              onClick={() => void ask("Leia este arquivo e explique em poucas linhas o que ele faz, quais riscos você vê e o que melhoraria. Não proponha patch agora.", true)}
+              onClick={() =>
+                void ask(
+                  "Leia este arquivo e explique em poucas linhas o que ele faz, quais riscos você vê e o que melhoraria. Não proponha patch agora.",
+                  true,
+                )
+              }
               disabled={!file || reviewing}
               className="rounded-sm border border-eve-hair px-2.5 py-1.5 font-mono text-[10px] tracking-[0.12em] text-eve-dim hover:border-eve-signal/50 hover:text-foreground disabled:opacity-40"
             >

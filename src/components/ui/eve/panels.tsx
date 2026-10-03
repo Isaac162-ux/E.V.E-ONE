@@ -3,7 +3,7 @@ import type { ReactNode } from "react"
 import {
   EVE_AUTONOMY,
   EVE_IDENTITY,
-  EVE_MODEL,
+  EVE_PROVIDER_SUMMARY,
   EVE_MODULES,
   type EveFact,
   type EveSession,
@@ -22,12 +22,12 @@ const STATUS_COPY: Record<
   listening: {
     label: "OUVINDO",
     detail: "Captando sua voz",
-    tone: "var(--eve-ok)",
+    tone: "var(--eve-blue)",
   },
   thinking: {
     label: "PROCESSANDO",
     detail: "Compondo resposta",
-    tone: "var(--eve-amber)",
+    tone: "var(--eve-violet)",
   },
   speaking: {
     label: "FALANDO",
@@ -52,12 +52,21 @@ export function StateCore({
   size?: "sm" | "lg"
 }) {
   const tone = STATUS_COPY[status].tone
-  const dimension = size === "lg" ? "size-40 sm:size-48" : "size-14"
+  const dimension = size === "lg" ? "size-36 sm:size-48" : "size-14"
   const ticks = Array.from({ length: 24 }, (_, index) => index * 15)
+  const threads = Array.from({ length: 56 }, (_, index) => {
+    const angle = (index / 56) * Math.PI * 2
+    const bend = angle + Math.sin(index * 1.7) * 0.55
+    const endX = 60 + Math.cos(angle) * 39
+    const endY = 60 + Math.sin(angle) * 39
+    const controlX = 60 + Math.cos(bend) * (18 + (index % 5) * 2)
+    const controlY = 60 + Math.sin(bend) * (18 + (index % 5) * 2)
+    return `M ${60 + Math.cos(angle + 0.24) * 4} ${60 + Math.sin(angle + 0.24) * 4} Q ${controlX} ${controlY} ${endX} ${endY}`
+  })
 
   return (
     <div
-      className={`relative ${dimension}`}
+      className={`eve-core relative ${size === "lg" ? "eve-core-large" : ""} ${dimension}`}
       role="img"
       aria-label={`Estado: ${STATUS_COPY[status].label}`}
     >
@@ -87,6 +96,45 @@ export function StateCore({
           opacity="0.85"
         />
       </svg>
+
+      {size === "lg" && (
+        <svg
+          viewBox="0 0 120 120"
+          className="eve-lattice absolute inset-[10%] size-[80%] overflow-visible"
+          aria-hidden="true"
+        >
+          <circle cx="60" cy="60" r="42" fill="url(#eve-glow)" />
+          <defs>
+            <radialGradient id="eve-glow">
+              <stop offset="0" stopColor={tone} stopOpacity="0.16" />
+              <stop offset="1" stopColor={tone} stopOpacity="0" />
+            </radialGradient>
+          </defs>
+          {threads.map((path, index) => (
+            <path
+              key={index}
+              d={path}
+              fill="none"
+              stroke={index % 3 === 0 ? "var(--eve-violet)" : tone}
+              strokeWidth="0.55"
+              strokeOpacity={index % 4 === 0 ? "0.48" : "0.22"}
+            />
+          ))}
+          {ticks.map((angle) => {
+            const radians = (angle * Math.PI) / 180
+            return (
+              <circle
+                key={angle}
+                cx={60 + Math.cos(radians) * 41}
+                cy={60 + Math.sin(radians) * 41}
+                r="0.75"
+                fill={tone}
+                fillOpacity="0.78"
+              />
+            )
+          })}
+        </svg>
+      )}
 
       <svg
         viewBox="0 0 120 120"
@@ -125,14 +173,17 @@ export function StateCore({
             key={angle}
             className="absolute top-1/2 left-1/2 h-1.5 w-px bg-eve-hair"
             style={{
-              transform: `rotate(${angle}deg) translateY(-${size === "lg" ? 88 : 30}px)`,
+              transform: `rotate(${angle}deg) translateY(-${size === "lg" ? 82 : 30}px)`,
               transformOrigin: "top center",
             }}
           />
         ))}
       </div>
 
-      <div className="absolute inset-[30%] rounded-full border border-eve-hair bg-eve-panel-2/70" />
+      <div
+        className="absolute inset-[30%] rounded-full border border-eve-outline/60 bg-eve-panel-2/70 shadow-[0_0_40px_-20px_var(--eve-signal)]"
+        aria-hidden="true"
+      />
       <div
         className="eve-core-pulse absolute inset-[38%] rounded-full"
         style={{
@@ -140,7 +191,10 @@ export function StateCore({
         }}
         aria-hidden="true"
       />
-      <div className="absolute inset-[44%] rounded-full" style={{ background: tone }} />
+      <div
+        className="absolute inset-[44%] rounded-full"
+        style={{ background: tone }}
+      />
 
       {size === "lg" && (
         <div className="absolute inset-x-6 top-1/2 overflow-hidden">
@@ -221,7 +275,7 @@ export function SessionRail({
       <button
         type="button"
         onClick={onCreate}
-        className="mx-3 mt-3 flex items-center justify-between rounded-sm border border-eve-hair bg-eve-panel-2 px-3 py-2 text-left transition-colors hover:border-eve-signal/60 hover:bg-eve-panel"
+        className="mx-3 mt-3 flex min-h-11 items-center justify-between rounded-sm border border-eve-outline/60 bg-eve-panel-2 px-3 py-2 text-left transition-colors hover:border-eve-signal/60 hover:bg-eve-panel"
       >
         <span className="text-[13px] text-foreground">Nova sessão</span>
         <span className="font-mono text-[11px] text-eve-signal">+</span>
@@ -251,7 +305,8 @@ export function SessionRail({
                   {session.title}
                 </span>
                 <span className="mt-0.5 block font-mono text-[10px] text-eve-dim">
-                  {formatTime(session.updatedAt)} · {session.messages.length} msg
+                  {formatTime(session.updatedAt)} · {session.messages.length}{" "}
+                  msg
                 </span>
                 {last && (
                   <span className="mt-1 block truncate text-[11px] text-eve-dim">
@@ -344,7 +399,7 @@ export function MemoryPanel({
   return (
     <section className="border-b border-eve-hair px-4 py-4">
       <div className="flex items-baseline justify-between">
-        <MetaLabel>Memória de longo prazo</MetaLabel>
+        <MetaLabel>Memória neste navegador</MetaLabel>
         {facts.length > 0 && (
           <button
             type="button"
@@ -358,8 +413,8 @@ export function MemoryPanel({
 
       {facts.length === 0 ? (
         <p className="mt-2 text-[11.5px] leading-relaxed text-eve-dim">
-          A E.V.E. registra aqui os fatos duráveis que aprende na conversa. Você
-          pode esquecer qualquer um deles.
+          Fatos salvos neste navegador. Sem sincronização entre dispositivos;
+          você pode esquecer qualquer um deles.
         </p>
       ) : (
         <ul className="mt-3 space-y-1.5">
@@ -469,7 +524,7 @@ export function SystemRail({
 export function MetaRailStatus({ status }: { status: EveStatus }) {
   return (
     <div className="flex flex-col gap-1 font-mono text-[10px] tracking-[0.14em] text-eve-dim">
-      <span>{EVE_MODEL}</span>
+      <span>{EVE_PROVIDER_SUMMARY}</span>
       <span>ESTADO {STATUS_COPY[status].label}</span>
     </div>
   )

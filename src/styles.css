@@ -79,12 +79,17 @@
 
 @theme inline {
   --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Space Grotesk", "DM Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-display:
+    "Space Grotesk", "DM Sans", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
   --color-eve-panel: var(--eve-panel);
   --color-eve-panel-2: var(--eve-panel-2);
   --color-eve-hair: var(--eve-hair);
+  --color-eve-outline: var(--eve-outline);
   --color-eve-signal: var(--eve-signal);
+  --color-eve-blue: var(--eve-blue);
+  --color-eve-violet: var(--eve-violet);
+  --color-eve-rose: var(--eve-rose);
   --color-eve-amber: var(--eve-amber);
   --color-eve-ok: var(--eve-ok);
   --color-eve-dim: var(--eve-dim);
@@ -129,6 +134,11 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--eve-signal);
+    outline-offset: 2px;
   }
 
   html,
@@ -187,38 +197,43 @@
  */
 @layer base {
   :root {
-    --eve-panel: oklch(0.21 0.014 252);
-    --eve-panel-2: oklch(0.18 0.013 254);
-    --eve-hair: oklch(0.3 0.018 252);
-    --eve-signal: oklch(0.82 0.13 200);
-    --eve-amber: oklch(0.83 0.13 78);
-    --eve-ok: oklch(0.8 0.13 158);
-    --eve-dim: oklch(0.62 0.02 250);
+    color-scheme: dark;
+    --background: #080a17;
+    --foreground: #f7f5ff;
+    --eve-panel: #11172a;
+    --eve-panel-2: #1a2140;
+    --eve-hair: #626f95;
+    --eve-outline: #6a7698;
+    --eve-signal: #8beaff;
+    --eve-blue: #9db8ff;
+    --eve-violet: #d2baff;
+    --eve-rose: #ffbbd8;
+    --eve-amber: #ffd18a;
+    --eve-ok: #a4f5de;
+    --eve-dim: #aab4d2;
 
-    --background: oklch(0.152 0.011 256);
-    --foreground: oklch(0.93 0.008 240);
-    --card: oklch(0.19 0.013 254);
-    --card-foreground: oklch(0.93 0.008 240);
-    --popover: oklch(0.19 0.013 254);
-    --popover-foreground: oklch(0.93 0.008 240);
-    --primary: oklch(0.82 0.13 200);
-    --primary-foreground: oklch(0.17 0.02 240);
-    --secondary: oklch(0.24 0.014 252);
-    --secondary-foreground: oklch(0.93 0.008 240);
-    --muted: oklch(0.24 0.014 252);
-    --muted-foreground: oklch(0.68 0.02 250);
-    --accent: oklch(0.26 0.017 250);
-    --accent-foreground: oklch(0.95 0.008 240);
-    --destructive: oklch(0.7 0.16 22);
-    --destructive-foreground: oklch(0.16 0.02 250);
-    --border: oklch(0.3 0.018 252);
-    --input: oklch(0.3 0.018 252);
-    --ring: oklch(0.82 0.13 200);
-    --radius: 0.25rem;
+    --card: #11172a;
+    --card-foreground: #f7f5ff;
+    --popover: #1a2140;
+    --popover-foreground: #f7f5ff;
+    --primary: #8beaff;
+    --primary-foreground: #07131e;
+    --secondary: #1a2140;
+    --secondary-foreground: #f7f5ff;
+    --muted: #1a2140;
+    --muted-foreground: #aab4d2;
+    --accent: #252e50;
+    --accent-foreground: #f7f5ff;
+    --destructive: #ff95a5;
+    --destructive-foreground: #21090f;
+    --border: #626f95;
+    --input: #626f95;
+    --ring: #8beaff;
+    --radius: 0.875rem;
   }
 
   ::selection {
-    background: oklch(0.82 0.13 200 / 0.28);
+    background: #8beaff50;
   }
 
   * {
@@ -254,6 +269,15 @@
   50% {
     opacity: 1;
     transform: scale(1.06);
+  }
+}
+
+@keyframes eve-aurora {
+  from {
+    transform: translate3d(-2%, 1%, 0) rotate(-2deg) scale(1.02);
+  }
+  to {
+    transform: translate3d(2%, -1%, 0) rotate(2deg) scale(1.06);
   }
 }
 
@@ -300,9 +324,120 @@
 
   .eve-grid {
     background-image:
-      linear-gradient(to right, oklch(0.3 0.018 252 / 0.35) 1px, transparent 1px),
-      linear-gradient(to bottom, oklch(0.3 0.018 252 / 0.35) 1px, transparent 1px);
+      linear-gradient(to right, #626f9530 1px, transparent 1px),
+      linear-gradient(to bottom, #626f9530 1px, transparent 1px);
     background-size: 46px 46px;
+  }
+
+  .eve-shell {
+    background:
+      radial-gradient(ellipse at 12% 0%, #8beaff0d, transparent 34%),
+      radial-gradient(ellipse at 88% 0%, #d2baff12, transparent 32%),
+      var(--background);
+  }
+
+  .eve-topbar {
+    background: linear-gradient(112deg, #11172af2, #1a2140dc 58%, #11172af0);
+    box-shadow:
+      0 1px 0 #8beaff12,
+      0 16px 42px -36px #8beaff70;
+  }
+
+  .eve-rail {
+    background: linear-gradient(180deg, #11172af2, #0d1223f5);
+  }
+
+  .eve-ambient {
+    position: relative;
+    isolation: isolate;
+    background:
+      radial-gradient(ellipse at 50% 24%, #1a2140a8, transparent 58%),
+      var(--background);
+  }
+
+  .eve-ambient::before {
+    position: absolute;
+    z-index: -1;
+    inset: -4%;
+    pointer-events: none;
+    content: "";
+    background:
+      radial-gradient(ellipse at 17% 26%, #8beaff20, transparent 40%),
+      radial-gradient(ellipse at 79% 22%, #d2baff22, transparent 38%),
+      radial-gradient(ellipse at 52% 84%, #ffbbd815, transparent 42%);
+    animation: eve-aurora 34s ease-in-out infinite alternate;
+  }
+
+  .eve-chat-composer {
+    background: linear-gradient(140deg, #1a2140ed, #11172af5 72%);
+    box-shadow: 0 -18px 52px -40px #8beaff78;
+  }
+
+  .eve-message-user {
+    border-color: color-mix(in srgb, var(--eve-violet) 58%, transparent);
+    background: linear-gradient(132deg, #8beaff1a, #d2baff1c 58%, #ffbbd812);
+    box-shadow: inset 0 1px 0 #f7f5ff12;
+  }
+
+  .eve-message-assistant {
+    border-image: linear-gradient(
+        180deg,
+        var(--eve-signal),
+        var(--eve-violet) 58%,
+        var(--eve-rose)
+      )
+      1;
+  }
+
+  .eve-suggestion {
+    background: linear-gradient(140deg, #1a2140d9, #11172aed);
+    box-shadow: inset 0 1px 0 #f7f5ff0d;
+  }
+
+  .eve-suggestion:hover {
+    background: linear-gradient(140deg, #1f2c4ae8, #171b33f5);
+  }
+
+  .eve-input-surface {
+    background: linear-gradient(145deg, #080a17ed, #11172af2);
+    box-shadow: inset 0 1px 0 #f7f5ff0d;
+  }
+
+  .eve-glass {
+    border-color: #6a769880;
+    background: linear-gradient(145deg, #1a2140ed, #11172af2);
+    backdrop-filter: blur(18px);
+  }
+
+  .eve-lattice {
+    animation: eve-drift 36s linear infinite;
+    transform-origin: center;
+  }
+
+  .eve-core-large::before {
+    position: absolute;
+    z-index: -1;
+    inset: 14%;
+    pointer-events: none;
+    border-radius: 50%;
+    background: conic-gradient(
+      from 24deg,
+      transparent 0deg,
+      #8beaff8a 46deg,
+      transparent 104deg,
+      #d2baff8a 174deg,
+      transparent 236deg,
+      #ffbbd878 298deg,
+      transparent 360deg
+    );
+    filter: blur(12px);
+    opacity: 0.52;
+    content: "";
+    animation: eve-drift 24s linear infinite;
+  }
+
+  .eve-core-large {
+    isolation: isolate;
   }
 }
 
@@ -310,10 +445,44 @@
   @layer components {
     .eve-ring-outer,
     .eve-ring-mid,
+    .eve-lattice,
+    .eve-ambient::before,
+    .eve-core-large::before,
     .eve-core-pulse,
     .eve-scan,
     .eve-caret {
       animation: none;
     }
+  }
+}
+
+@media (pointer: coarse) {
+  .eve-shell :is(button, a) {
+    min-block-size: 44px;
+  }
+}
+
+@media (forced-colors: active) {
+  :focus-visible {
+    outline-color: Highlight;
+  }
+
+  .eve-glass {
+    border-color: CanvasText;
+    background: Canvas;
+    backdrop-filter: none;
+  }
+
+  .eve-ambient::before {
+    display: none;
+  }
+
+  .eve-core-large::before {
+    display: none;
+  }
+
+  .eve-message-assistant {
+    border-image: none;
+    border-left-color: CanvasText;
   }
 }
