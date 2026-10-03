@@ -4,4 +4,7 @@
   "main": "./src/server.ts",
   "compatibility_date": "2026-08-11",
   "compatibility_flags": ["nodejs_compat"],
+  "secrets": {
+    "required": ["EVE_FASTAPI_API_KEY", "EVE_FASTAPI_BASE_URL"]
+  }
 }
